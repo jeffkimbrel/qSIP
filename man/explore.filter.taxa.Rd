@@ -9,8 +9,8 @@ explore.filter.taxa(
   trt.code.1 = NULL,
   trt.code.2 = NULL,
   trt.refs = NULL,
-  vars = c("taxon", "copies", "tube", "trt.code"),
-  min.reps
+  min.reps,
+  ...
 )
 }
 \arguments{
@@ -21,8 +21,6 @@ explore.filter.taxa(
 \item{trt.code.2}{trt.code.2}
 
 \item{trt.refs}{trt.refs}
-
-\item{vars}{vars}
 
 \item{min.reps}{min.reps}
 }
