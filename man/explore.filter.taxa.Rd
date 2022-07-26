@@ -2,28 +2,11 @@
 % Please edit documentation in R/filter.taxa.R
 \name{explore.filter.taxa}
 \alias{explore.filter.taxa}
-\title{Explore Filter Taxa}
+\title{Explore Filter Taxa (Deprecated)}
 \usage{
-explore.filter.taxa(
-  DATA,
-  trt.code.1 = NULL,
-  trt.code.2 = NULL,
-  trt.refs = NULL,
-  min.reps,
-  ...
-)
-}
-\arguments{
-\item{DATA}{DATA}
-
-\item{trt.code.1}{trt.code.1}
-
-\item{trt.code.2}{trt.code.2}
-
-\item{trt.refs}{trt.refs}
-
-\item{min.reps}{min.reps}
+explore.filter.taxa(...)
 }
 \description{
-Define a function to use to filter the data so that only taxa with an appropriate level of occurrence and replication among the tubes and treatments of the experiment are retained for further analysis:
+Explore Filter Taxa (Deprecated)
 }
+\keyword{internal}

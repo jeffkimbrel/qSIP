@@ -1,8 +1,8 @@
 Package: qSIP
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.9
-Author: Who wrote it
+Title: A collection of code for qSIP analysis
+Version: 0.4.1
+Author: Jeff Kimbrel
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.

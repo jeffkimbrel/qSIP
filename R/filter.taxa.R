@@ -1,106 +1,120 @@
 #' Filter Taxa
 #'
-#' Define a function to use to filter the data so that only taxa with an appropriate level of occurrence and replication among the tubes and treatments of the experiment are retained for further analysis:
+#' A function to filter the data so that only taxa with an appropriate level of
+#' occurrence and replication among the tubes and treatments of the experiment
+#' are retained for further analysis.
 #'
-#' @param DATA DATA
-#' @param trt.code.1 trt.code.1
-#' @param trt.code.2 trt.code.2
-#' @param trt.refs trt.refs
-#' @param min.reps min.reps
+#' @param df Dataframe
+#' @param treatment1 trt.code.1
+#' @param treatment2 trt.code.2
+#' @param treatment_refs trt.refs
+#' @param min_reps min.reps
+#' @param taxon_column Column header with taxon identifier (formerly vars[1])
+#' @param filter_column Column header with abundance or copy numbers (formerly vars[2])
+#' @param tube_column Column header with tube or sample identifier (formerly vars[3])
+#' @param treatment_column Column header with treatment identifier (formerly vars[4])
+#'
+#' @return A list with filtered data and extras
+#' \itemize{
+#'   \item df: The filtered dataframe
+#'   \item plot: A summary ggplot object
+#'   \item treatment1: The argument passed to treatment1
+#'   \item treatment2: The argument passed to treatment2
+#'   \item treatment_refs: The argument passed to treatment_refs
+#'   \item min_reps: The argument passed to min_reps
+#'   \item taxon_column: The argument passed to taxon_column
+#'   \item treatment_column: The argument passed to treatment_column
+#'   \item filter_column: The argument passed to filter_column
+#'   \item tube_column: The argument passed to tube_column
+#' }
 #'
 #' @export
 
-filter.taxa = function(DATA, trt.code.1=NULL, trt.code.2=NULL, trt.refs=NULL, min.reps, ...) {
+filter_taxa = function(df, treatment1=NULL, treatment2=NULL, treatment_refs=NULL, min_reps = 3, taxon_column = "taxon", treatment_column = "unique.tmt", filter_column = "t.copies.ul", tube_column = "unique.tube") {
   require(tidyverse)
-  require(patchwork)
 
   #First, determine the specified treatments according to those specified from the treatment comparisons data.frame:
-  trts1 = unlist(str_split(trt.code.1, ";"))
-  trts2 = unlist(str_split(trt.code.2, ";"))
-  trts3 = unlist(str_split(trt.refs, ";"))
-  trts.to.filter <- str_trim(unique(c(trts1, trts2, trts3)))
+  trts1 = parse_treatments(treatment1)
+  trts2 = parse_treatments(treatment2)
+  trts3 = parse_treatments(treatment_refs)
+  treatments_to_filter <- c(trts1, trts2, trts3)
 
   #Subset the data into only those taxon-reps with copies present in the specified treatments:
-  DATA.occurrences = DATA %>%
-    filter(unique.tmt %in% trts.to.filter) %>%
-    filter(!is.na(t.DNA.ng.fraction)) %>%
-    filter(t.DNA.ng.fraction > 0)
+  df_subset = df %>%
+    filter(!!as.name(treatment_column) %in% treatments_to_filter) %>%
+    filter(!is.na(!!as.name(filter_column))) %>%
+    filter(!!as.name(filter_column) > 0)
 
   #Calculate the number of unique tubes in the specified treatments with copies present for each taxon:
-  tubes.per.taxon = DATA.occurrences %>%
-    group_by(taxon) %>%
-    summarize(tubes.per.taxon = n_distinct(unique.tube)) %>%
-    arrange(tubes.per.taxon) %>%
+  tubes_per_taxon = df_subset %>%
+    group_by(!!as.name(taxon_column)) %>%
+    summarize(tubes_per_taxon = n_distinct(!!as.name(tube_column))) %>%
+    arrange(tubes_per_taxon) %>%
     deframe()
 
-  #Visualize keeping only those taxa that occur in at least 'min.reps' tubes across all the specified treatments:
-  p1 = tubes.per.taxon %>%
-    enframe(name = "taxon", value = "tubes.per.taxon") %>%
-    ggplot(aes(x = tubes.per.taxon)) +
+  #Visualize keeping only those taxa that occur in at least 'min_reps' tubes across all the specified treatments:
+  p = tubes_per_taxon %>%
+    enframe(name = "taxon", value = "tubes_per_taxon") %>%
+    ggplot(aes(x = tubes_per_taxon)) +
     theme_bw() +
-    geom_histogram(binwidth = 1, color = "black", aes(fill = ifelse(tubes.per.taxon >= min.reps, "PASS", "FAIL"))) +
+    geom_histogram(binwidth = 1, color = "black", aes(fill = ifelse(tubes_per_taxon >= min_reps, "PASS", "FAIL"))) +
     scale_fill_manual(values = c("PASS" = "#037bcf", "FAIL" = "gray80")) +
     theme(legend.position = "bottom") +
     expand_limits(x = 0) +
-    labs(x = "# of tubes per taxon", y = "# of taxa", fill = "Meets min.rep requirements")
-
-  p2 = tubes.per.taxon %>%
-    enframe(name = "taxon", value = "tubes.per.taxon") %>%
-    ggplot(aes(x = reorder(taxon, tubes.per.taxon), y = tubes.per.taxon)) +
-    theme_bw() +
-    geom_point(pch = 21, aes(fill = ifelse(tubes.per.taxon >= min.reps, "PASS", "FAIL"))) +
-    scale_fill_manual(values = c("PASS" = "#037bcf", "FAIL" = "gray80")) +
-    theme(legend.position = "none",
-          axis.text.x=element_blank(),
-          axis.ticks.x=element_blank()) +
-    expand_limits(y = 0) +
-    labs(y = "# of tubes per taxon", x = "# of taxa", fill = "Meets min.rep requirements")
-
-  p = p1 / p2
+    labs(title = paste("Filtered Treatments:", treatments_to_filter, ", Min Reps:", min_reps ), x = "# of tubes per taxon", y = "# of taxa", fill = "Meets min.rep requirements")
 
   #Taxa filtered:
-  tot.starting.taxa = DATA %>%
+  tot_starting_taxa = df %>%
     select(taxon) %>%
     unique() %>%
     pull() %>%
     length()
 
-  print("Taxa occurring in (all) the specified treatment(s): ", sep="")
-  tubes.per.taxon = tubes.per.taxon
-  print(tubes.per.taxon)
+  taxa_passing_filter = tubes_per_taxon %>%
+    enframe(name = "taxon", value = "tubes_per_taxon") %>%
+    filter(tubes_per_taxon >= min_reps) %>%
+    pull(taxon)
 
-  print(paste("Taxa occurring in ≥", min.reps, " total replicates of the specified treatment(s): ", sep=""))
-  print(tubes.per.taxon[as.numeric(tubes.per.taxon) >= min.reps])
-  print(paste("Total number of taxa occuring in the specified data: ", tot.starting.taxa, sep=""))
-  print(paste("Number of taxa occuring in (all) the specified treatment(s): ", length(tubes.per.taxon), sep=""))
-  print(paste("Number of taxa that occurred in ≥ ", min.reps, " total replicates of the specified treatment(s): ", length(tubes.per.taxon[as.numeric(tubes.per.taxon) >= min.reps]), sep=""))
+  message(paste("Total number of taxa occuring in the specified data: ", tot_starting_taxa, sep=""))
+  message(paste("Number of taxa occuring in (all) the specified treatment(s): ", length(tubes_per_taxon), sep=""))
+  message(paste("Number of taxa that occurred in ≥ ", min_reps, " total replicates of the specified treatment(s): ", length(taxa_passing_filter), sep=""))
 
-  #Now, explore what subsetting the DATA dataframe would mean so that it only contains taxon-tubes for taxa occurring in at least 'min.reps' tubes across the specified treatment(s):
-  print(paste("Dimensions of the specified data frame (before filtering): ", paste(dim(DATA), collapse="   "), sep=""))
-  print(paste("Dimensions of the specified data frame including only those taxa that do not occur in the specified treatment(s): ", paste(dim(DATA[DATA[,"taxon"] %in% as.character(rep(1:tot.starting.taxa))[!(as.character(rep(1:tot.starting.taxa)) %in% names(tubes.per.taxon))],]), collapse="   "), sep=""))
-  print(paste("Dimensions of the specified data frame including only those taxa that do not occur in ≥", min.reps, " total replicates of the specified treatment(s): ", paste(dim(DATA[DATA[,"taxon"] %in% names(tubes.per.taxon[as.numeric(tubes.per.taxon) < min.reps]),]), collapse="   "), sep=""))
-
-  DATA = DATA %>%
-    filter(taxon %in% names(tubes.per.taxon[as.numeric(tubes.per.taxon) >= min.reps])) %>%
+  df_filtered = df %>%
+    filter(taxon %in% taxa_passing_filter) %>%
     mutate(across(where(is.character),as_factor))
 
-  print(paste("Dimensions of the specified data frame (after filtering): ", paste(dim(DATA), collapse="   "), sep=""))
+  message(paste("Dimensions of the specified data frame (before filtering): ", paste(dim(df), collapse="   "), sep=""))
+  message(paste("Dimensions of the specified data frame (after filtering): ", paste(dim(df_filtered), collapse="   "), sep=""))
 
-  return(DATA)
+  l = list("df" = df_filtered,
+           "plot" = p,
+           "taxa" = taxa_passing_filter,
+           "treatment1" = treatment1,
+           "treatment2" = treatment2,
+           "treatment_refs" = treatment_refs,
+           "min_reps" = min_reps,
+           "taxon_column" = taxon_column,
+           "treatment_column" = treatment_column,
+           "filter_column" = filter_column,
+           "tube_column" = tube_column)
+
+  return(l)
 }
 
-#' Explore Filter Taxa
+#' Explore Filter Taxa (Deprecated)
 #'
-#' Define a function to use to filter the data so that only taxa with an appropriate level of occurrence and replication among the tubes and treatments of the experiment are retained for further analysis:
-#'
-#' @param DATA DATA
-#' @param trt.code.1 trt.code.1
-#' @param trt.code.2 trt.code.2
-#' @param trt.refs trt.refs
-#' @param min.reps min.reps
-#'
+#' @keywords internal
 #' @export
 
-explore.filter.taxa = function(DATA, trt.code.1=NULL, trt.code.2=NULL, trt.refs=NULL, min.reps, ...) {
-  .Deprecated("filter.taxa()")
+explore.filter.taxa = function(...) {
+  .Defunct("filter_taxa()")
+}
+
+#' Filter Taxa (Deprecated)
+#'
+#' @keywords internal
+#' @export
+
+filter.taxa = function(...) {
+  .Defunct("filter_taxa()")
 }
