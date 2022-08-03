@@ -7,6 +7,7 @@
 all_taxa_calcs(
   X.all,
   comparisons,
+  output_directory,
   M.soil = Sdat,
   taxon_column = "taxon",
   density_column = "Density",
@@ -28,6 +29,8 @@ all_taxa_calcs(
 \item{X.all}{data frame with data for all taxa and treatments}
 
 \item{comparisons}{data frame specifying which treatments to compare; must contain these columns: "comparisonID", "iso.compare", "trt.code.1", "trt.code.2", "trt.refs", "days"}
+
+\item{output_directory}{Directory to write the output files to}
 
 \item{M.soil}{data frame with mass of soil for each replicate; must contain two columns, one for replicate ID and one for mass of soil; default is NULL meaning that is M.soil is not provided, only WAD and ape results are returned}
 
