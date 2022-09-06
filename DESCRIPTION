@@ -1,7 +1,7 @@
 Package: qSIP
 Type: Package
 Title: A collection of code for qSIP analysis
-Version: 0.4.6
+Version: 0.4.8
 Author: Jeff Kimbrel
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: More about what it does (maybe more than one line)

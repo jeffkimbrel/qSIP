@@ -53,7 +53,7 @@ filter_taxa = function(df, treatment1=NULL, treatment2=NULL, treatment_refs=NULL
   df_subset = df %>%
     dplyr::filter(!!as.name(filter_column) > 0) %>%
     dplyr::filter(!is.na(!!as.name(filter_column))) %>%
-    dplyr::ilter(!!as.name(taxon_column) %in% treatment_taxa)
+    dplyr::filter(!!as.name(taxon_column) %in% treatment_taxa)
 
 
   # GET FRACTION COUNTS
@@ -66,7 +66,7 @@ filter_taxa = function(df, treatment1=NULL, treatment2=NULL, treatment_refs=NULL
   df_tubes = df_fractions %>%
     dplyr::group_by(!!as.name(treatment_column), !!as.name(taxon_column)) %>%
     dplyr::mutate(tube_count = n_distinct(!!as.name(tube_column)))
-  
+
   #Visualize keeping only those taxa that occur in at least 'min_reps' tubes across all the specified treatments:
   p = df_tubes %>%
     dplyr::ungroup() %>%
@@ -127,11 +127,18 @@ filter_taxa = function(df, treatment1=NULL, treatment2=NULL, treatment_refs=NULL
     dplyr::filter(!!as.name(taxon_column) %in% taxa_passing_filter) %>%
     dplyr::mutate(across(where(is.character),as_factor))
 
-  message(paste("Total number of taxa occuring in the specified data: ", tot_starting_taxa, sep=""))
-  message(paste("Number of taxa occuring in (all) the specified treatment(s): ", length(unique(df_subset$taxon)), sep=""))
-  message(paste("Number of taxa that occurred in >= ", min_reps, " total replicates and >= ", min_fractions, " total fractions of the specified treatment(s): ", length(taxa_passing_filter), sep=""))
-  message(paste("Dimensions of the specified data frame (before filtering): ", paste(dim(df), collapse="   "), sep=""))
-  message(paste("Dimensions of the specified data frame (after filtering): ", paste(dim(df_final), collapse="   "), sep=""))
+  # message(paste("Total number of taxa occuring in the specified data: ", tot_starting_taxa, sep=""))
+  # message(paste("Number of taxa occuring in (all) the specified treatment(s): ", length(unique(df_subset$taxon)), sep=""))
+  # message(paste("Number of taxa that occurred in >= ", min_reps, " total replicates and >= ", min_fractions, " total fractions of the specified treatment(s): ", length(taxa_passing_filter), sep=""))
+  # message(paste("Dimensions of the specified data frame (before filtering): ", paste(dim(df), collapse="   "), sep=""))
+  # message(paste("Dimensions of the specified data frame (after filtering): ", paste(dim(df_final), collapse="   "), sep=""))
+
+  message(paste("Total number of taxa occuring in the specified data: ", formatC(tot_starting_taxa, format = "d", big.mark = ","),
+  "\nNumber of taxa occuring in (all) the specified treatment(s): ", length(unique(df_subset$taxon)),
+  "\nNumber of taxa that occurred in >= ", min_reps, " total replicates and >= ", min_fractions, " total fractions of the specified treatment(s): ", length(taxa_passing_filter),
+  "\nDimensions of the specified data frame (before filtering): ", paste(dim(df), collapse="   "),
+  "\nDimensions of the specified data frame (after filtering): ", paste(dim(df_final), collapse="   "), sep=""))
+
 
   l = list("df" = df_final,
            "plot" = p,
