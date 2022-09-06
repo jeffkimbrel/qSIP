@@ -12,7 +12,7 @@
 #'
 #' Written by Ben Koch & Natasja van Gestel
 #'
-#' @param X data frame that includes x values (e.g., density of DNA) and y values (e.g., number of copies) and the replicate IDs (e.g., tube number)
+#' @param df data frame that includes x values (e.g., density of DNA) and y values (e.g., number of copies) and the replicate IDs (e.g., tube number)
 #' @param density_column Column header with fraction density (formerly vars[1])
 #' @param copies_ul_column Column header with abundance or copy numbers (formerly vars[2])
 #' @param tube_column Column header with tube or sample identifier (formerly vars[3])

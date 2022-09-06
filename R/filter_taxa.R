@@ -43,63 +43,65 @@ filter_taxa = function(df, treatment1=NULL, treatment2=NULL, treatment_refs=NULL
 
   # Subset the data into only those taxon-reps with copies present in the specified treatments:
   treatment_taxa = df %>%
-    filter(!!as.name(treatment_column) %in% treatments_to_filter) %>%
-    filter(!is.na(!!as.name(filter_column))) %>%
-    filter(!!as.name(filter_column) > 0) %>%
+    dplyr::filter(!!as.name(treatment_column) %in% treatments_to_filter) %>%
+    dplyr::filter(!is.na(!!as.name(filter_column))) %>%
+    dplyr::filter(!!as.name(filter_column) > 0) %>%
     pull(!!as.name(taxon_column)) %>%
-    unique() %>% sort()
+    unique() %>%
+    sort()
 
   df_subset = df %>%
-    filter(!!as.name(filter_column) > 0) %>%
-    filter(!is.na(!!as.name(filter_column))) %>%
-    filter(!!as.name(taxon_column) %in% treatment_taxa)
+    dplyr::filter(!!as.name(filter_column) > 0) %>%
+    dplyr::filter(!is.na(!!as.name(filter_column))) %>%
+    dplyr::ilter(!!as.name(taxon_column) %in% treatment_taxa)
 
 
   # GET FRACTION COUNTS
   df_fractions = df_subset %>%
-    group_by(!!as.name(treatment_column), !!as.name(taxon_column)) %>%
-    mutate(fraction_count = n())
+    dplyr::group_by(!!as.name(treatment_column), !!as.name(taxon_column)) %>%
+    dplyr::mutate(fraction_count = n())
 
 
   # GET TUBE COUNTS
   df_tubes = df_fractions %>%
-    group_by(!!as.name(tube_column), !!as.name(taxon_column)) %>%
-    mutate(tube_count = n_distinct(!!as.name(tube_column)))
-
+    dplyr::group_by(!!as.name(treatment_column), !!as.name(taxon_column)) %>%
+    dplyr::mutate(tube_count = n_distinct(!!as.name(tube_column)))
+  
   #Visualize keeping only those taxa that occur in at least 'min_reps' tubes across all the specified treatments:
   p = df_tubes %>%
-    ungroup() %>%
-    filter(!!as.name(treatment_column) %in% treatments_to_filter) %>%
-    select(taxon, !!as.name(treatment_column), tube_count, fraction_count) %>%
+    dplyr::ungroup() %>%
+    dplyr::filter(!!as.name(treatment_column) %in% treatments_to_filter) %>%
+    dplyr::select(taxon, !!as.name(treatment_column), tube_count, fraction_count) %>%
     unique() %>%
-    group_by(tube_count, !!as.name(treatment_column), fraction_count) %>%
-    count() %>%
-    mutate(FILL = case_when(
+    dplyr::group_by(tube_count, !!as.name(treatment_column), fraction_count) %>%
+    dplyr::count() %>%
+    dplyr::mutate(FILL = case_when(
       tube_count >= min_reps & fraction_count >= min_fractions ~ "#037bcf",
       TRUE ~ "red"
     )) %>%
-    rename(TREATMENT = !!as.name(treatment_column)) %>%
-    ggplot(aes(x = tube_count, y = n, fill = FILL)) +
-    theme_bw() +
-    geom_col() +
-    expand_limits(x = 0) +
-    facet_grid(TREATMENT~fraction_count) +
-    scale_fill_identity()
+    dplyr::rename(TREATMENT = !!as.name(treatment_column)) %>%
+    ggplot2::ggplot(aes(x = tube_count, y = n, fill = FILL)) +
+      ggplot2::theme_bw() +
+      ggplot2::geom_col() +
+      ggplot2::expand_limits(x = 0) +
+      ggplot2::facet_grid(TREATMENT~fraction_count) +
+      ggplot2::scale_fill_identity() +
+      ggplot2::labs(y = "Taxon Count", x = "Tube Count")
 
   # FINAL DATA FRAME
   df_filtered = df_tubes %>%
-    ungroup() %>%
-    mutate(in_treatments_to_filter = case_when(
+    dplyr::ungroup() %>%
+    dplyr::mutate(in_treatments_to_filter = dplyr::case_when(
       !!as.name(treatment_column) %in% treatments_to_filter ~ TRUE,
       TRUE ~ FALSE)) %>%
-    mutate(to_keep = case_when(
+    dplyr::mutate(to_keep = dplyr::case_when(
       fraction_count < min_fractions ~ FALSE,
       tube_count < min_reps ~ FALSE,
       TRUE ~ TRUE
     )) %>%
-    filter(to_keep == TRUE & in_treatments_to_filter == TRUE) %>%
-    select(-to_keep, -in_treatments_to_filter, -fraction_count, -tube_count) %>%
-    mutate(across(where(is.character),as_factor))
+    dplyr::filter(to_keep == TRUE & in_treatments_to_filter == TRUE) %>%
+    dplyr::select(-to_keep, -in_treatments_to_filter, -fraction_count, -tube_count) %>%
+    dplyr::mutate(across(where(is.character), as_factor))
 
   # p = tubes_per_taxon %>%
   #   enframe(name = "taxon", value = "tubes_per_taxon") %>%
@@ -113,7 +115,7 @@ filter_taxa = function(df, treatment1=NULL, treatment2=NULL, treatment_refs=NULL
 
   #Taxa filtered:
   tot_starting_taxa = df %>%
-    select(taxon) %>%
+    dplyr::select(taxon) %>%
     unique() %>%
     pull() %>%
     length()
@@ -122,14 +124,14 @@ filter_taxa = function(df, treatment1=NULL, treatment2=NULL, treatment_refs=NULL
     pull(taxon) %>% unique()
 
   df_final = df %>%
-    filter(!!as.name(taxon_column) %in% taxa_passing_filter) %>%
-    mutate(across(where(is.character),as_factor))
+    dplyr::filter(!!as.name(taxon_column) %in% taxa_passing_filter) %>%
+    dplyr::mutate(across(where(is.character),as_factor))
 
   message(paste("Total number of taxa occuring in the specified data: ", tot_starting_taxa, sep=""))
   message(paste("Number of taxa occuring in (all) the specified treatment(s): ", length(unique(df_subset$taxon)), sep=""))
-  message(paste("Number of taxa that occurred in ≥ ", min_reps, " total replicates and ≥ ", min_fractions, " total fractions of the specified treatment(s): ", length(taxa_passing_filter), sep=""))
+  message(paste("Number of taxa that occurred in >= ", min_reps, " total replicates and >= ", min_fractions, " total fractions of the specified treatment(s): ", length(taxa_passing_filter), sep=""))
   message(paste("Dimensions of the specified data frame (before filtering): ", paste(dim(df), collapse="   "), sep=""))
-  message(paste("Dimensions of the specified data frame (after filtering): ", paste(dim(df_filtered), collapse="   "), sep=""))
+  message(paste("Dimensions of the specified data frame (after filtering): ", paste(dim(df_final), collapse="   "), sep=""))
 
   l = list("df" = df_final,
            "plot" = p,

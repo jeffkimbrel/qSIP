@@ -15,6 +15,7 @@
 #' Written by Ben Koch & Natasja van Gestel
 #'
 #' @param X.all data frame with data for all taxa and treatments
+#' @param output_directory Directory to write the output files to
 #' @param comparisons data frame specifying which treatments to compare; must contain these columns: "comparisonID", "iso.compare", "trt.code.1", "trt.code.2", "trt.refs", "days"
 #' @param M.soil data frame with mass of soil for each replicate; must contain two columns, one for replicate ID and one for mass of soil; default is NULL meaning that is M.soil is not provided, only WAD and ape results are returned
 #' @param taxon_column column with taxon IDs (formerly vars[1])
@@ -117,6 +118,7 @@
 
 all_taxa_calcs <- function(X.all,
                            comparisons,
+                           output_directory,
                            M.soil=Sdat,
                            taxon_column = "taxon",            #vars[1]
                            density_column = "Density",        #vars[2]
@@ -249,7 +251,7 @@ all_taxa_calcs <- function(X.all,
           filter(!!as.name(treatment_column) %in% trt.refs)
         #dim(X.reference.orig) == dim(X.reference)
 
-        MW.out = MW_calc(df = X.reference, density_column = "Density", copies_ul_column = "t.copies.ul", tube_column = "unique.tube")
+        MW.out = MW_calc(df = X.reference, density_column = density_column, copies_ul_column = copies_ul_column, tube_column = tube_column)
 
         #204
 
@@ -457,17 +459,18 @@ all_taxa_calcs <- function(X.all,
   N.boots$trt.code.2 <- factor(N.boots$trt.code.2)
 
   #Export the abundance bootstrapped estimates, C flux bootstrapped estimates, and growth rate bootstrapped estimates (and ape, wad.diff, wad2, & wad1 bootstrapped estimates) to a text file:
-  dir.create(path=paste(getwd(), "/qSIP_output", sep=""), showWarnings=FALSE)
-  write.table(wad1.boots, "qSIP_output/bootstrapped_wad1.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
-  write.table(wad2.boots, "qSIP_output/bootstrapped_wad2.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
-  write.table(wad.diff.boots, "qSIP_output/bootstrapped_wad_diff.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
-  write.table(ape.boots, "qSIP_output/bootstrapped_ape.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
+  dir.create(path=paste(output_directory, sep=""), showWarnings=FALSE)
+  write_tsv(wad1.boots, fs::path(getwd(), output_directory, "bootstrapped_wad1.txt"))
+  write_tsv(wad2.boots, fs::path(getwd(), output_directory, "bootstrapped_wad2.txt"))
+  write_tsv(wad.diff.boots, fs::path(getwd(), output_directory, "bootstrapped_wad_diff.txt"))
+  write_tsv(ape.boots, fs::path(getwd(), output_directory, "bootstrapped_ape.txt"))
+
   if (!sham){   #If M.soil was not a sham, then provide this output:
-    write.table(r.boots, "qSIP_output/bootstrapped_r.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
-    write.table(C.flux.boots, "qSIP_output/bootstrapped_C_fluxes.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
-    write.table(N1.boots, "qSIP_output/bootstrapped_N1.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
-    write.table(N2.boots, "qSIP_output/bootstrapped_N2.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
-    write.table(N.boots, "qSIP_output/bootstrapped_N.txt", append=F, quote=F, sep="\t", eol="\n", na="NA", dec=".", row.names=F, col.names=T)
+    write_tsv(r.boots, fs::path(getwd(), output_directory, "bootstrapped_r.txt"))
+    write_tsv(C.flux.boots, fs::path(getwd(), output_directory, "bootstrapped_C_fluxes.txt"))
+    write_tsv(N1.boots, fs::path(getwd(), output_directory, "bootstrapped_N1.txt"))
+    write_tsv(N2.boots, fs::path(getwd(), output_directory, "bootstrapped_N2.txt"))
+    write_tsv(N.boots, fs::path(getwd(), output_directory, "bootstrapped_N.txt"))
   }
 
   #Convert appropriate variables in 'info' to factors:

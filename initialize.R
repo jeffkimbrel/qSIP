@@ -1,7 +1,6 @@
-library(devtools)
-library(roxygen2)
+devtools::load_all()
+devtools::check()
+devtools::document()
 
-document()
-
-install("../qSIP/")
+devtools::install("../qSIP/")
 packageVersion("qSIP")

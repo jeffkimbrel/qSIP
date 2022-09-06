@@ -12,13 +12,13 @@ MW_calc(
 )
 }
 \arguments{
+\item{df}{data frame that includes x values (e.g., density of DNA) and y values (e.g., number of copies) and the replicate IDs (e.g., tube number)}
+
 \item{density_column}{Column header with fraction density (formerly vars[1])}
 
 \item{copies_ul_column}{Column header with abundance or copy numbers (formerly vars[2])}
 
 \item{tube_column}{Column header with tube or sample identifier (formerly vars[3])}
-
-\item{X}{data frame that includes x values (e.g., density of DNA) and y values (e.g., number of copies) and the replicate IDs (e.g., tube number)}
 }
 \value{
 A data.frame with the following columns
