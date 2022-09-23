@@ -19,7 +19,7 @@ tube_shift_heavy = function(data, light, heavy_isotopes = c("13C"), low = 0, hig
   rowcount = nrow(data)
 
   data = data %>%
-    filter(Isotope == heavy_isotopes & wads != "NA") %>%
+    filter(Isotope %in% heavy_isotopes & wads != "NA") %>%
     left_join(taxon_median_light, by = "taxon") %>%
     filter(taxon_median_light != "NA") %>%
     group_by(SampleID) %>%
