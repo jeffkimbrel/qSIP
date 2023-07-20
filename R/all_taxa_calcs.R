@@ -139,7 +139,7 @@ all_taxa_calcs <- function(X.all,
   require(progress)
 
   # if list is given, extract the dataframe
-  if (class(X.all) == "list") {
+  if ("list" %in% class(X.all)) {
     X.all = X.all$df
   }
 
@@ -148,7 +148,7 @@ all_taxa_calcs <- function(X.all,
   sham <- FALSE
   if (is.null(M.soil)){
     sham <- TRUE
-    M.soil = tibble("A" = levels(X.all$df$unique.tube), "B" = 1) %>%
+    M.soil = tibble("A" = levels(X.all$unique.tube), "B" = 1) %>%
       select(!!as.name(tube_column) := A, !!as.name(soil_g_column) := B)
   }
 
@@ -162,7 +162,7 @@ all_taxa_calcs <- function(X.all,
 
   #Establish the number of comparisons and the number of taxa:
   N.comparisons <- length(levels(factor(comparisons$comparisonID)))
-  N.taxa = length(X.all$taxa) ### NEEDS FIX
+  N.taxa = X.all %>% select(taxon_column) %>% unique() %>% count() %>% pull()
 
   # (L118) ------
   #Create a key relating treatment codes in the raw data to the "effective" treatments specified by (potentially) multiple trt codes in the comparisons data frame:
@@ -187,7 +187,7 @@ all_taxa_calcs <- function(X.all,
   for (p in 1:N.eff.treatments){
     #Calculate the number of reps over which to resample - for each 'effective' treatment:
     curr.trts.incl.NAs <- as.character(unique(trt.names[trt.names$eff.trt.name == all.eff.treatments[p], 3:dim(trt.names)[2]]))
-    test.data <- X.all$df %>%
+    test.data <- X.all %>%
       filter(!!as.name(treatment_column) %in% parse_treatments(curr.trts.incl.NAs))
     N.reps <- test.data %>% select(!!as.name(tube_column)) %>% unique() %>% pull() %>% length()
 
@@ -233,26 +233,29 @@ all_taxa_calcs <- function(X.all,
       mat.name.light <- as.character(TRTID$trt.mat.name[1])
       mat.name.heavy <- as.character(TRTID$trt.mat.name[2])
 
-      message(paste("Running calculations for", length(X.all$taxa), "taxa..."))  ### NEEDS FIX
-      pb <- progress_bar$new(total = length(X.all$taxa))      ### NEEDS FIX
-      for (taxa in X.all$taxa){  #for each taxon...
+      message(paste("Running calculations for", N.taxa, "taxa..."))
+      pb <- progress_bar$new(total = N.taxa)
+
+      unique_taxa = X.all %>% select(taxon_column) %>% unique() %>% pull()
+
+      for (taxa in unique_taxa){  #for each taxon...
         pb$tick()
 
         #Subset the data by taxon and comparison and calculate the necessary values from the 'reference' treatments:
         #X.light.orig <- X.all.orig[X.all.orig[,vars[1]]==levels(X.all.orig[,vars[1]])[i] & X.all.orig[,vars[5]] %in% trt.1,]
-        X.light = X.all$df %>%
+        X.light = X.all %>%
           filter(!!as.name(taxon_column) == taxa) %>%
           filter(!!as.name(treatment_column) %in% trt.1)
         #dim(X.light.orig) == dim(X.light)
 
         #X.heavy.orig <- X.all.orig[X.all.orig[,vars[1]]==levels(X.all.orig[,vars[1]])[i] & X.all.orig[,vars[5]] %in% trt.2,]
-        X.heavy = X.all$df %>%
+        X.heavy = X.all %>%
           filter(!!as.name(taxon_column) == taxa) %>%
           filter(!!as.name(treatment_column) %in% trt.2)
         #dim(X.heavy.orig) == dim(X.heavy)
 
         #X.reference.orig <- X.all.orig[X.all.orig[,vars[1]]==levels(X.all.orig[,vars[1]])[i] & X.all.orig[,vars[5]] %in% trt.refs,]
-        X.reference = X.all$df %>%
+        X.reference = X.all %>%
           filter(!!as.name(taxon_column) == taxa) %>%
           filter(!!as.name(treatment_column) %in% trt.refs)
         #dim(X.reference.orig) == dim(X.reference)
