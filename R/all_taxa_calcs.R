@@ -138,6 +138,12 @@ all_taxa_calcs <- function(X.all,
 
   require(progress)
 
+  # if list is given, extract the dataframe
+  if (class(X.all) == "list") {
+    X.all = X.all$df
+  }
+
+
   #If M.soil is unspecified, then create a sham M.soil data.frame for the sake of doing the calculations, but r, f, and N results will not be included in output:
   sham <- FALSE
   if (is.null(M.soil)){
@@ -228,7 +234,7 @@ all_taxa_calcs <- function(X.all,
       mat.name.heavy <- as.character(TRTID$trt.mat.name[2])
 
       message(paste("Running calculations for", length(X.all$taxa), "taxa..."))  ### NEEDS FIX
-      pb <- progress_bar$new(total = length(X.all$taxa))
+      pb <- progress_bar$new(total = length(X.all$taxa))      ### NEEDS FIX
       for (taxa in X.all$taxa){  #for each taxon...
         pb$tick()
 
