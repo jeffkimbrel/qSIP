@@ -38,7 +38,8 @@ MW_calc <- function(df, density_column = "Density", copies_ul_column = "t.copies
   test.data = df %>%
     select(x = !!as.name(density_column),
            y = !!as.name(copies_ul_column),
-           rep = !!as.name(tube_column))
+           rep = !!as.name(tube_column)) %>%
+    mutate(rep = as.factor(rep))
 
   test.data$rep = droplevels(test.data$rep)
 

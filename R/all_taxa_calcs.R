@@ -156,7 +156,7 @@ all_taxa_calcs <- function(X.all,
 
   #Establish the number of comparisons and the number of taxa:
   N.comparisons <- length(levels(factor(comparisons$comparisonID)))
-  N.taxa = length(X.all$taxa)
+  N.taxa = length(X.all$taxa) ### NEEDS FIX
 
   # (L118) ------
   #Create a key relating treatment codes in the raw data to the "effective" treatments specified by (potentially) multiple trt codes in the comparisons data frame:
@@ -227,7 +227,7 @@ all_taxa_calcs <- function(X.all,
       mat.name.light <- as.character(TRTID$trt.mat.name[1])
       mat.name.heavy <- as.character(TRTID$trt.mat.name[2])
 
-      message(paste("Running calculations for", length(X.all$taxa), "taxa..."))
+      message(paste("Running calculations for", length(X.all$taxa), "taxa..."))  ### NEEDS FIX
       pb <- progress_bar$new(total = length(X.all$taxa))
       for (taxa in X.all$taxa){  #for each taxon...
         pb$tick()
