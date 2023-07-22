@@ -2,8 +2,8 @@ pandoc: 2.19.2
 pkgdown: 2.0.7
 pkgdown_sha: ~
 articles: {}
-last_built: 2023-07-22T16:35Z
+last_built: 2023-07-22T16:47Z
 urls:
-  reference: https://jeffkimbrel.github.io/qSIP/reference
-  article: https://jeffkimbrel.github.io/qSIP/articles
+  reference: https://jeffkimbrel.github.io/qSIP/index.html/reference
+  article: https://jeffkimbrel.github.io/qSIP/index.html/articles
 
