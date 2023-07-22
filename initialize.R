@@ -6,11 +6,8 @@ devtools::install("../qSIP/")
 packageVersion("qSIP")
 
 # build package down site
-usethis::use_pkgdown()
-pkgdown::build_site_github_pages(
-  pkg = ".",
-  dest_dir = "docs",
-  clean = TRUE,
-  install = FALSE,
-  new_process = FALSE
-)
+#usethis::use_pkgdown()
+usethis::use_pkgdown_github_pages()
+pkgdown::build_site()
+
+
