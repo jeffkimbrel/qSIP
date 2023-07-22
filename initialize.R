@@ -7,7 +7,8 @@ packageVersion("qSIP")
 
 # build package down site
 #usethis::use_pkgdown()
-usethis::use_pkgdown_github_pages()
+
+usethis::use_pkgdown_github_pages() ## change version in description first
 pkgdown::build_site()
 
 
