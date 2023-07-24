@@ -1,0 +1,543 @@
+---
+title: "qSIP R Package Vignette"
+author: "Jeff Kimbrel"
+date: "`r Sys.Date()`"
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-location: left
+    theme: litera
+    fontsize: 1.0em
+    linestretch: 1.1
+    page-layout: article
+    width: 1600px
+    code-fold: false
+execute:
+  cache: true
+  echo: true
+  message: false
+  warning: false
+editor_options: 
+  chunk_output_type: console
+---
+
+::: {.callout-tip collapse="true"}
+# Setup
+
+```{r setup_1}
+#| echo: false
+#| message: false
+library(tidyverse)
+library(gt)
+library(jakR)
+library(qSIP)
+```
+
+Install/load these R packages:
+
+```{r pkg-list}
+#| eval: false
+#| code-fold: false
+install.packages(c("tidyverse", "gt", "patchwork"))
+devtools::install_github("jeffkimbrel/jakR") # Only needed for some plot and table theming
+devtools::install_github("jeffkimbrel/qSIP")
+```
+
+Define `ggplot` theme and `gt` table themes
+
+```{r setup_2}
+#| code-fold: false
+plot_theme = jak_theme(plot_title_size = 14, 
+                    axis_title_size = 13,
+                    base_size = 12)
+
+table_theme = function(data) {
+  data %>%
+  gt_theme(background_color = "#037bcf35",
+           font_color = "#000000",
+           table_font_size = 14,
+           column_label_size = 15,
+           align = "left",
+           table_padding = 2)
+}
+```
+
+Assign paths to files
+
+```{r setup_3}
+#| message: false
+#| code-fold: false
+
+metadata_file = "/Users/kimbrel1/OD/Soils_SFA/analysis/qSIP_refactor/SB_example/data/otu_table_filtered_USEME_even30366_L6.txt"
+taxa_file = "/Users/kimbrel1/OD/Soils_SFA/analysis/qSIP_refactor/SB_example/data/Taxonomy_legend.txt"
+sdat_file = "/Users/kimbrel1/OD/Soils_SFA/analysis/qSIP_refactor/SB_example/data/copies_per_g_soil_FINAL.txt"
+
+T3_file = "/Users/kimbrel1/OD/Soils_SFA/analysis/qSIP_refactor/SB_example/data/SB_TreatmentComparisons_3.txt"
+T24_file = "/Users/kimbrel1/OD/Soils_SFA/analysis/qSIP_refactor/SB_example/data/SB_TreatmentComparisons_24.txt"
+```
+:::
+
+
+::: {.callout-caution}
+
+## Under Development!
+
+This workflow is very much in development, and details will change over time. This is a great time to suggest improvements to the workflow or documentation.
+
+Suggestions can be made as "issues" on the github [qSIP repo](https://github.com/jeffkimbrel/qSIP).
+
+:::
+
+
+# Read in data files (L1-143)
+
+Much of this can be streamlined into one code block, but it is broken up here to mirror the original qSIP code. I did this to make sure each step of both workflows produce the same output.
+
+## Main Dataframe
+
+This dataframe has most of the metadata related to each sample in the first few columns, and then a column for each OTU/ASV and it's abundance information
+
+```{r}
+qsip_df = read_tsv(metadata_file)
+```
+
+Typically, this is a very wide format file where each row is a tube/fraction, and the columns contain most sample metadata, as well as a column for each taxa. This particular data frame has `r nrow(qsip_df)` rows, but `r ncol(qsip_df)` columns. 
+
+Next, a `unique.tube` column is made by concatenating several metadata fields together. True, there may already be a `tube` column which *might* be unique. But it also might not be unique, because this `tube` column is often assigned per centrifuge spin, so the dataframe may have multiple unique tubes with the same value, but they are not actually from the same physical tube. The `relocate` command is just to move this new column so it is before the taxa in the wide format. 
+
+```{r}
+# L96-L98
+qsip_df = qsip_df %>%
+  mutate(unique.tube = paste(Replicate, Hour, Isotope, sep="_")) %>%
+  relocate(unique.tube, .after = Trt.code)
+```
+
+Next, add a `unique.tmt` column. This should be similar to the `unique.tube` column, but with any replicate information stripped out so that replicate tubes have the same value. The isotope/label should also be added here.
+
+```{r}
+# L100-L102
+qsip_df = qsip_df %>%
+  mutate(unique.tmt = paste(Hour, Isotope, sep="_")) %>%
+  relocate(unique.tmt, .after = unique.tube)
+```
+
+Next, do a row-wise summation of the reads for the taxa columns only, and save to a new column `sum.abundance`. There should be a unique identifying feature for the ASVs/OTUs/taxa columns. For this dataset, all of the taxa start with an `X`, so that is the feature used. 
+
+```{r}
+# L107-L108
+qsip_df = qsip_df %>% 
+  mutate(sum.abundance = rowSums(select(., starts_with("X"))))
+```
+
+Next, we can move the dataframe from a wide format to a long format. This step could have happened earlier in the workflow, but we are doing it now to mimic the original qSIP code. Again, we are using the `X` to select the fields for the pivot. 
+
+Also, note that the original dataframe here already contained relative abundance for the taxa abundance, and therefore the `sum.abundance` column is equal to 1. The workflow here can be the same if (ideally) the original data contains read counts. If given relative abundance, this step is just redundant. 
+
+```{r}
+# through L133
+qsip_df = qsip_df %>% 
+  pivot_longer(cols = starts_with("X"), names_to = "taxon", values_to = "rel.abundance")
+```
+
+Finally, take the `copies.ul` column (taxa copies per ul) to convert the relative abundance to a copies per ul for each taxa (denoted with the `t`). And we can remove the `sum.abundance` column as it isn't needed.
+
+```{r}
+qsip_df = qsip_df %>%
+  mutate(t.copies.ul = copies.ul * rel.abundance) %>%
+  select(-sum.abundance)
+```
+
+```{r}
+#| echo: false
+
+qsip_df %>%
+  head() %>%
+  gt() %>%
+  table_theme()
+```
+
+## Taxonomy File
+
+The taxonomy file is two columns. The first is the `taxon` id, and this must match the columns in the `qsip_df` dataframe.
+
+```{r}
+qsip_taxa <- read_tsv(taxa_file, col_names = c("taxon","code"))
+
+# setdiff(qsip_taxa$taxon, unique(qsip_df$taxon)) # should be 0
+# setdiff(unique(qsip_df$taxon), qsip_taxa$taxon) # should be 0
+```
+
+And we can join it with the `qsip_df` object using the `taxon` columns. 
+
+```{r}
+qsip_df = qsip_df %>%
+  left_join(qsip_taxa, by = "taxon")
+```
+
+## Comparison Files
+
+This is one area that can be improved by the team. These files contain a list of `unique.tmt` codes that should be compared. The `trt.code.1` column contains all of the "light" isotope treatments, and so too often does the `trt.refs` column. Getting a baseline for a taxon in the unlabeled treatments can be more difficult because all taxa share similar densities, so there is less abundance of any one taxa in the limited set of reads. Using all of the light isotope treatments increases the total pool of reads and can give a better baseline for what the unlabeled density of each taxon should be. 
+
+The "numerator" of the equation is a single heavy isotope treatment, and is stored in `trt.code.2`.
+
+::: panel-tabset
+
+### T3
+
+```{r}
+T3 <- read_tsv(T3_file)
+```
+
+```{r}
+#| echo: false
+
+T3 %>%
+  head() %>%
+  gt() %>%
+  table_theme()
+```
+
+### T24
+
+```{r}
+T24 <- read_tsv(T24_file)
+```
+
+```{r}
+#| echo: false
+
+T24 %>%
+  head() %>%
+  gt() %>%
+  table_theme()
+```
+
+:::
+
+# Summarize copies per tube (through L182)
+
+Calculate a copies per tube value for each taxa into a new dataframe `copies_tube`. The `copies.ul` is the total copies per ul of DNA, and `t.copies.ul` is the total copies of a specific taxon. 
+
+::: {.callout-warning collapse="true"}
+
+### What is ul referring to?
+
+We are normalizing the taxon abundance to copies per ul, but the original metadata doesn't seem to have a ul column. What is the ul referring to (uls of DNA from the soil extraction? uls of DNA recovered from the density gradient extractions?). And where to we modify the code to incorporate differences in uls used in different tubes, fractions, etc.? 
+:::
+
+```{r}
+copies_tube = qsip_df %>%
+  group_by(taxon, unique.tube) %>%
+  summarize(Spin = Spin, Replicate = Replicate, Hour = Hour, Isotope = Isotope, tube = tube, unique.tmt = unique.tmt, copies.ul = sum(copies.ul), t.copies.ul = sum(t.copies.ul), code = code, .groups = "drop") %>%
+  unique() %>%
+  select(c("taxon", "tube", "Spin", "Replicate", "Hour", "Isotope", "unique.tube", 
+           "unique.tmt", "copies.ul", "t.copies.ul", "code"))
+```
+
+```{r}
+#| echo: false
+
+copies_tube %>%
+  head() %>%
+  gt() %>%
+  table_theme()
+```
+
+# Filter Taxa
+
+The `filter_taxa()` function creates a list with the filtered dataframe, a plot object, and some slots for the parameters used.
+
+::: {.callout-tip}
+
+### No more `vars` arguments
+
+One big change of the refactored code is no more use of the `vars` argument. Previously, `vars` was a position specific vector with column names from the `qsip_df` dataframe, but it wasn't always clear what columns needed to be in what position of `vars`.
+
+```
+vars=c("taxon", "density.g.ml", "copies", "tube", "trt.code", "g.soil")
+```
+
+The refactored code has separate arguments to pass the column names. Instead of needing to know the `taxon` column needs to be in position 1 of `vars`, you just pass the column name as an argument like `taxon_column = "taxon"`, or the column name with the unique treatment as `treatment_column = "unique.tmt"`.
+
+:::
+
+## T3
+
+```{r}
+#| message: true
+qsip_t3 = filter_taxa(qsip_df,
+                      treatment1 = NULL, 
+                      treatment2 = T3$trt.code.2[1], 
+                      treatment_refs = NULL, 
+                      min_reps = 3, 
+                      min_fractions = 1,
+                      taxon_column = "taxon", 
+                      filter_column = "t.copies.ul", 
+                      treatment_column = "unique.tmt")
+```
+
+### Filter results plot
+
+To access the plot, use `$plot`. The `filter_taxa()` function also includes a minimum fractions argument, and the plot is faceted by the fractions a taxon was found in within a tube. The x-axis is the tube count, and the y-axis is the taxon count. Any taxon passing the filter will be shown in blue, and those that are filtered out will be shown in red. 
+
+
+```{r}
+#| fig.height: 3
+qsip_t3$plot + plot_theme + labs(title = "First pass filter")
+```
+
+### Second round of filtering
+
+To access the dataframe (e.g. to do another round of filtering) use `$df`. 
+
+```{r}
+#| message: true
+
+qsip_t3 = filter_taxa(qsip_t3$df, 
+                         treatment1 = NULL, 
+                         treatment2 = T3$trt.code.1[1], 
+                         treatment_refs = T3$trt.refs[1], 
+                         min_reps = 3, 
+                         min_fractions = 1, 
+                         filter_column = "t.copies.ul", 
+                         treatment_column = "unique.tmt")
+```
+
+
+Since the plots are `ggplot` objects, you can change most aspects with additional styling...
+
+```{r}
+qsip_t3$plot + plot_theme + labs(title = "Second pass filter (log scale)") + scale_y_log10()
+```
+
+## T24
+
+::: panel-tabset
+
+### First Filter
+
+```{r}
+#| message: true
+
+qsip_t24 = filter_taxa(qsip_df, 
+                       treatment1 = NULL, 
+                       treatment2 = T24$trt.code.2[1], 
+                       treatment_refs = NULL, 
+                       min_reps = 3, 
+                       filter_column = "t.copies.ul", 
+                       treatment_column = "unique.tmt")
+qsip_t24$plot + plot_theme + labs(title = "First pass filter")
+```
+
+### Second Filter
+
+```{r}
+#| message: true
+
+qsip_t24 = filter_taxa(qsip_t24$df, 
+                       treatment1 = NULL, 
+                       treatment2 = T24$trt.code.1[1], 
+                       treatment_refs = T24$trt.refs[1], 
+                       min_reps = 3, 
+                       filter_column = "t.copies.ul", 
+                       treatment_column = "unique.tmt")
+qsip_t24$plot + plot_theme + labs(title = "Second pass filter") + scale_y_log10()
+```
+
+:::
+
+# All Taxa Calcs
+
+The `all_taxa_calcs()` function is the heart of the qSIP pipeline. While it has been refactored to some extent, the most immediate changes to the pipeline will likely be to this function. In particular, the the `M.soil` and `comparisons` arguments will be reworked. 
+
+```{r}
+sdat = read_tsv(sdat_file)
+```
+
+## T3
+
+```{r}
+#| eval: true
+set.seed(100)
+
+# running system.time and saving, but just for development. It isn't needed.
+qsip_t3_time = system.time(qsip_t3.comparisons <- all_taxa_calcs(X.all=qsip_t3, 
+                                                    output_directory = ".",
+                                                    comparisons=T3, 
+                                                    M.soil=sdat, 
+                                                    taxon_column = "taxon",            #vars[1]
+                                                    density_column = "Density",        #vars[2]
+                                                    copies_ul_column = "t.copies.ul",  #vars[3]
+                                                    tube_column = "unique.tube",       #vars[4]
+                                                    treatment_column = "unique.tmt",   #vars[5]
+                                                    soil_g_column = "g.dry.soil.tube", #vars[6]
+                                                    growth.model="linear", 
+                                                    prop.O.from.water=0.60, 
+                                                    v.frac=30, 
+                                                    copies.cell=6, 
+                                                    pgC.cell=0.1, 
+                                                    CI=0.90, 
+                                                    draws=1000, 
+                                                    tailed.test=1))
+```
+
+This run took `r qsip_t3_time['elapsed']` seconds.
+
+The `qsip_t3.comparisons` dataframe has a row for each of the taxa, and `r ncol(qsip_t3.comparisons)` columns with all sorts of output from `all_taxa_calcs()`. There are also many files written to disk in the directory given to the `output_directory` argument. This includes the raw results for all of the bootstrap analyses. 
+
+Typically, the first interesting output are the various `ape` columns. 
+
+```{r}
+qsip_t3.comparisons %>% as_tibble() %>%
+  select(taxonID, wad.diff.p.value, starts_with("ape")) %>%
+  #filter(ape.boot.CI.L > 0) %>%
+  ggplot(aes(x = reorder(taxonID, ape.obs), 
+             y = ape.boot.mean, 
+             color = wad.diff.p.value)) +
+    plot_theme +
+    geom_point() +
+    geom_errorbar(aes(ymin = ape.boot.CI.L, ymax = ape.boot.CI.U)) +
+    labs(title = "T3", x = "Taxa (reordered by ape.obs)")+
+  	theme(axis.text.x = element_blank(),  
+		  axis.ticks.x = element_blank(),  
+      panel.grid.major.x = element_blank(),
+		  legend.position = "right")
+```
+
+## T24
+
+```{r}
+#| eval: true
+set.seed(100)
+
+# running system.time and saving, but just for development. It isn't needed.
+qsip_t24_time = system.time(qsip_t24.comparisons <- all_taxa_calcs(X.all=qsip_t24, 
+                                                    output_directory = ".",
+                                                    comparisons=T24, 
+                                                    M.soil=sdat, 
+                                                    taxon_column = "taxon",            #vars[1]
+                                                    density_column = "Density",        #vars[2]
+                                                    copies_ul_column = "t.copies.ul",  #vars[3]
+                                                    tube_column = "unique.tube",       #vars[4]
+                                                    treatment_column = "unique.tmt",   #vars[5]
+                                                    soil_g_column = "g.dry.soil.tube", #vars[6]
+                                                    growth.model="linear", 
+                                                    prop.O.from.water=0.60, 
+                                                    v.frac=30, 
+                                                    copies.cell=6, 
+                                                    pgC.cell=0.1, 
+                                                    CI=0.90, 
+                                                    draws=1000, 
+                                                    tailed.test=1))
+```
+
+This run took `r qsip_t24_time['elapsed']` seconds.
+
+```{r}
+qsip_t24.comparisons %>% as_tibble() %>%
+  select(taxonID, wad.diff.p.value, starts_with("ape")) %>%
+  #filter(ape.boot.CI.L > 0) %>%
+  ggplot(aes(x = reorder(taxonID, ape.obs), 
+             y = ape.boot.mean, 
+             color = wad.diff.p.value)) +
+    plot_theme +
+    geom_point() +
+    geom_errorbar(aes(ymin = ape.boot.CI.L, ymax = ape.boot.CI.U)) +
+    labs(title = "T24", x = "Taxa (reordered by ape.obs)")+
+  	theme(axis.text.x = element_blank(),  
+		  axis.ticks.x = element_blank(),  
+      panel.grid.major.x = element_blank(),
+		  legend.position = "right")
+```
+
+## Merging
+
+More functions need to be added for qualitative analysis of the results. Suggestions welcome! 
+
+```{r}
+df = bind_rows("T3" = qsip_t3.comparisons, 
+               "T24" = qsip_t24.comparisons, 
+               .id = "COMP") %>% 
+  as_tibble()
+```
+
+@fig-figure shows an example analysis, probably not too useful. 
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+#| fig-cap: "Differences in taxa ape.obs between T3 and T24"
+#| label: fig-figure
+
+df %>%
+  select(COMP, taxonID, ape.obs) %>%
+  pivot_wider(names_from = COMP, values_from = ape.obs, values_fill = 0) %>%
+  left_join(qsip_taxa, by = c("taxonID" = "taxon")) %>%
+  separate(code, sep = ";", into = c("k", "p", "c", "o", "f", "g")) %>%
+  ggplot(aes(x = T3, y = T24, fill = p)) +
+    plot_theme +
+    geom_point(pch = 21) +
+    facet_wrap(~p) +
+    scale_fill_manual(values = palette_jak$bay(23)) +
+    theme(legend.position = "none") +
+    labs(title = "ape.obs in T3 and T24, faceted by phylum")
+```
+
+# Growth Rates
+
+<details><summary>This is a place holder section for future code, and isn't finished.</summary>
+
+## Tiny Abundance
+
+For the growth calculations, we don't want to filter out all taxa that are missing at one time or another; we want to assign those taxa abundances of 0.5*detection limit. This was refactored into the `calc_tiny_abundance()` function.
+
+```{r}
+tiny_abundance = calc_tiny_abundance(qsip_df, 
+                                     column = "t.copies.ul",
+                                     multiplier = 0.5)
+```
+
+The tiny abundance is `r tiny_abundance`. 
+
+```{r}
+copies_tube_t3 = copies_tube %>% 
+  filter(unique.tmt %in% c("3_18O", "24_18O")) %>% 
+  filter(taxon %in% c(qsip_t3$taxa, qsip_t24$taxa)) %>% 
+  mutate(t.copies.ul = ifelse(t.copies.ul == 0, tiny_abundance, t.copies.ul))
+```
+</details>
+
+# Session Info
+
+::: panel-tabset
+
+## Environment
+
+```{r}
+#| echo: false
+df_sess = sessioninfo::platform_info() %>%
+  unlist() %>%
+  as.data.frame() %>%
+  rownames_to_column()
+
+colnames(df_sess) = c("name", "value")
+  
+df_sess%>%
+  gt() %>%
+  table_theme()
+```
+
+## Packages
+
+```{r}
+#| echo: false
+sessioninfo::package_info() %>%
+  as_tibble() %>%
+  filter(attached == TRUE) %>%
+  select(package, loadedversion, source, date, attached) %>%
+  gt() %>%
+  table_theme()
+```
+
+:::
