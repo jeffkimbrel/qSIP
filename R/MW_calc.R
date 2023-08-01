@@ -4,7 +4,7 @@
 #' added heavy isotopes), calculate the weighted average density (WAD), GC
 #' content, molecular weight, and carbon content
 #'
-#' assumes a fixed GC content, molecular weight, carbon, and nitrogen content
+#' Assumes a fixed GC content, molecular weight, carbon, and nitrogen content
 #' for each taxon based on the mean observed WAD
 #' oxygen content is fixed for DNA regardless of GC content
 #' the weighted average density of unlabeled DNA is a good proxy for GC content of the taxon, according to the well-known relationship between GC content and the density of DNA (uses equation from McHugh & Morrissey unpublished data)

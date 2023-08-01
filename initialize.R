@@ -8,7 +8,7 @@ devtools::document()
 #pkgdown::clean_site()
 #usethis::use_pkgdown()
 #usethis::use_pkgdown_github_pages()
-usethis::use_github(protocol = "https")
+usethis::use_github_action("pkgdown")
 pkgdown::build_site() ## change version in description first
 
 
