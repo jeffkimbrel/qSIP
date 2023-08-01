@@ -11,6 +11,10 @@ stress_test(data, light, window = 0.1, step = 0.1)
 \item{data}{A dataframe containing taxon wad values per tube}
 
 \item{light}{A dataframe containing light isotope adjusted taxon wad values averaged across all tubes}
+
+\item{window}{Size of the sliding window}
+
+\item{step}{Step size for the sliding window}
 }
 \description{
 Calculates and plots stress

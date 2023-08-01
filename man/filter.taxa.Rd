@@ -4,7 +4,7 @@
 \alias{filter.taxa}
 \title{Filter Taxa (Deprecated)}
 \usage{
-filter.taxa(...)
+\method{filter}{taxa}(...)
 }
 \description{
 Filter Taxa (Deprecated)

@@ -3,6 +3,8 @@
 #'
 #' @param data A dataframe containing taxon wad values per tube
 #' @param light A dataframe containing light isotope adjusted taxon wad values averaged across all tubes
+#' @param window Size of the sliding window
+#' @param step Step size for the sliding window
 #' @export
 
 stress_test = function(data, light, window = 0.1, step = 0.1){

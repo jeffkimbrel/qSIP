@@ -12,6 +12,5 @@ devtools::document()
 pkgdown::build_site() ## change version in description first
 
 
-
 devtools::install("../qSIP/")
 packageVersion("qSIP")
