@@ -1,0 +1,26 @@
+{
+    "id": "56C77924",
+    "path": "~/Github/qSIP/R/all_taxa_calcs.R",
+    "project_path": "R/all_taxa_calcs.R",
+    "type": "r_source",
+    "hash": "3730327369",
+    "contents": "",
+    "dirty": false,
+    "created": 1690867152481.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "493,27",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1689877116,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1689877116,
+    "read_only": false,
+    "read_only_alternatives": []
+}
