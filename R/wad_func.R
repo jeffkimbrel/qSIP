@@ -10,7 +10,7 @@
 #' @return weighted-average of the x-values (single value)
 #'
 #' @export
-#' @example
+#' @examples
 #' WAD_func(c(1, 10, 100), c(1, 2, 3))
 
 WAD_func <- function(y, x) {

@@ -18,6 +18,6 @@ weighted-average of the x-values (single value)
 Given vectors of x values and y values, calculate the weighted-average of
 the x-values (e.g., the weighted average density (WAD))
 }
-\details{
-Written by Ben Koch & Natasja van Gestel
+\examples{
+WAD_func(c(1, 10, 100), c(1, 2, 3))
 }
