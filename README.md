@@ -1,9 +1,3 @@
-# qSIP
+This original qSIP package has been archived and should no longer be used.
 
-R package for quantitative stable isotope probing workflow. 
-
-To install:
-
-```
-devtools::install_github("jeffkimbrel/qSIP")
-```
+Please use the `qSIP2` package instead found at https://github.com/jeffkimbrel/qSIP2/. 
